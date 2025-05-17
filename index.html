@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Birthday Gift App</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 1.8rem;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    .options,
+    .form-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      max-width: 400px;
+      margin: 0 auto;
+      animation: slideUp 0.8s ease-out;
+    }
+
+    button {
+      padding: 12px;
+      font-size: 16px;
+      width: 100%;
+      max-width: 300px;
+      background: #007bff;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    button:hover {
+      background: #0056b3;
+      transform: scale(1.02);
+    }
+
+    input {
+      padding: 10px;
+      width: 100%;
+      max-width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    input:focus {
+      border-color: #007bff;
+      outline: none;
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .form-section {
+      margin-top: 20px;
+    }
+
+    .success {
+      color: green;
+      margin-top: 15px;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #007bff;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      button, input {
+        max-width: 100%;
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎉 Happy Birthday! 🎉</h1>
+  
+  <div class="options" id="options">
+    <button onclick="selectOption(1)">Option 1</button>
+    <button onclick="selectOption(2)">Option 2</button>
+    <button onclick="selectOption(3)">Option 3</button>
+  </div>
+
+  <form id="giftForm" class="form-section hidden" onsubmit="submitForm(event)">
+    <input type="text" id="name" placeholder="Your Name" required />
+    <input type="text" id="giftTypeDisplay" readonly />
+
+    <div id="phoneSection" class="hidden">
+      <input type="tel" id="phoneNumber" placeholder="Phone Number" />
+    </div>
+
+    <div id="accountSection" class="hidden">
+      <input type="text" id="accountNumber" placeholder="Account Number" />
+      <input type="text" id="bankName" placeholder="Bank Name" />
+    </div>
+
+    <button type="submit" id="submitBtn">Send Gift Info</button>
+    <div id="loader" class="loader hidden"></div>
+    <div class="success" id="successMessage"></div>
+  </form>
+
+  <script>
+    const giftForm = document.getElementById('giftForm');
+    const optionsDiv = document.getElementById('options');
+    const phoneSection = document.getElementById('phoneSection');
+    const accountSection = document.getElementById('accountSection');
+    const successMessage = document.getElementById('successMessage');
+    const giftTypeDisplay = document.getElementById('giftTypeDisplay');
+    const loader = document.getElementById('loader');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const giftTypeMap = {
+      1: 'Airtime',
+      2: 'Data Subscription',
+      3: 'Cash'
+    };
+
+    function selectOption(option) {
+      localStorage.setItem('selectedOption', option);
+      showForm(option);
+    }
+
+    function showForm(option) {
+      optionsDiv.classList.add('hidden');
+      giftForm.classList.remove('hidden');
+      phoneSection.classList.add('hidden');
+      accountSection.classList.add('hidden');
+
+      const giftType = giftTypeMap[option];
+      giftTypeDisplay.value = giftType;
+
+      if (option === 1 || option === 2) {
+        phoneSection.classList.remove('hidden');
+      } else if (option === 3) {
+        accountSection.classList.remove('hidden');
+      }
+    }
+
+    async function submitForm(event) {
+      event.preventDefault();
+
+      loader.classList.remove('hidden');
+      submitBtn.disabled = true;
+      successMessage.textContent = '';
+
+      const selectedOption = parseInt(localStorage.getItem('selectedOption'));
+      const giftType = giftTypeMap[selectedOption];
+      const name = document.getElementById('name').value;
+
+      const phoneNumber = (selectedOption === 1 || selectedOption === 2)
+        ? document.getElementById('phoneNumber').value
+        : null;
+      const accountNumber = selectedOption === 3
+        ? document.getElementById('accountNumber').value
+        : null;
+      const bankName = selectedOption === 3
+        ? document.getElementById('bankName').value
+        : null;
+
+      try {
+        const res = await fetch('https://birthdaycelebbackend-1.onrender.com/api/gift', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            giftType,
+            phoneNumber,
+            accountNumber,
+            bankName
+          })
+        });
+
+        const data = await res.json();
+        successMessage.textContent = "🎉 Gift info submitted successfully!";
+        giftForm.reset();
+        localStorage.removeItem('selectedOption');
+      } catch (error) {
+        console.error('Submission failed:', error);
+        successMessage.textContent = "❌ Failed to send. Try again.";
+      } finally {
+        loader.classList.add('hidden');
+        submitBtn.disabled = false;
+      }
+    }
+
+    // Restore selection
+    const savedOption = parseInt(localStorage.getItem('selectedOption'));
+    if (savedOption) {
+      showForm(savedOption);
+    }
+  </script>
+
+</body>
+</html>
